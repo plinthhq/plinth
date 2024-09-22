@@ -43,5 +43,15 @@ module.exports = {
   // add rules configurations here
   rules: {
     "import/no-default-export": "off",
+    // Prefer arrow functions over function definitions unless it's a page or layout
+    "react/function-component-definition": [
+      1,
+      {
+        namedComponents: ["function-declaration", "arrow-function"],
+        unnamedComponents: ["function-expression", "arrow-function"],
+      },
+    ],
+    // Empty interfaces are okay and can be valid for certain design patterns
+    "@typescript-eslint/no-empty-interface": "off",
   },
 };
