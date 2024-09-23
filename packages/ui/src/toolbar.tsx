@@ -3,8 +3,8 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import { MessageCircle, Inbox } from 'lucide-react';
 import { cn } from '@repo/tailwind-config/utils.ts';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Toggle, ToggleGroupItem } from './toggle';
+import { useEffect, useRef, useState } from 'react';
+import { ToggleGroupItem } from './toggle';
 
 interface ToolbarProps extends React.ComponentPropsWithoutRef<'div'> {}
 
@@ -13,11 +13,12 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
   const [menuValue, setMenuValue] = useState<string>('empty');
 
   //Comment "inspector mode" state
-  const isCommenting = useMemo(() => {
-    return menuValue === 'comment';
-  }, [menuValue]);
+  const isCommenting = menuValue === 'comment';
   const [overlayStyle, setOverlayStyle] = useState<React.CSSProperties>({});
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Reference to this toolbar widget to prevent highlighting
+  const toolbarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isCommenting) {
@@ -27,26 +28,27 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
           clientX,
           clientY
         ) as HTMLElement | null;
-        if (element && overlayRef.current) {
-          // Exclude the overlay element itself
-          if (element === overlayRef.current) {
+        if (element && overlayRef.current && toolbarRef.current) {
+          // Exclude the overlay element itself or the toolbar (and it's children)
+          if (
+            element === overlayRef.current ||
+            toolbarRef.current.contains(element)
+          ) {
             return;
           }
           const rect = element.getBoundingClientRect();
+
+          //Move the overlay to the bounding box of the closest element
           setOverlayStyle({
-            position: 'fixed',
-            top: rect.top + 'px',
-            left: rect.left + 'px',
-            width: rect.width + 'px',
-            height: rect.height + 'px',
-            border: '2px solid blue',
-            backgroundColor: 'rgba(0, 0, 255, 0.1)',
-            pointerEvents: 'none',
-            zIndex: 9999,
+            top: `${rect.top}px`,
+            left: `${rect.left}px`,
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
           });
         }
       };
 
+      // Get the element under the cursor when the user clicks
       const handleClick = (event: MouseEvent) => {
         event.preventDefault();
         event.stopPropagation();
@@ -55,7 +57,12 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
           clientX,
           clientY
         ) as HTMLElement | null;
-        if (element && element !== overlayRef.current) {
+        // Exclude the overlay element itself or the toolbar (and it's children)
+        if (
+          element &&
+          element !== overlayRef.current &&
+          !toolbarRef.current?.contains(element)
+        ) {
           // Handle the selected element as needed
           console.log('Selected element:', element);
         }
@@ -63,6 +70,7 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
         setMenuValue('empty');
       };
 
+      // Shortcut to close the menu when "ESC" is pressed
       const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key === 'Escape') {
           // Close the menu
@@ -90,6 +98,7 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
           'absolute bottom-4 left-1/2 flex -translate-x-1/2 transform items-center space-x-1 rounded-md border bg-background p-1 shadow-sm',
           className
         )}
+        ref={toolbarRef}
       >
         <ToggleGroup.Root
           onValueChange={(newValue) => {
@@ -106,9 +115,14 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
             <Inbox className="h-5 w-5" />
           </ToggleGroupItem>
         </ToggleGroup.Root>
-        <p className="text-red-500">Menu value: {menuValue}</p>
       </div>
-      {isCommenting && <div ref={overlayRef} style={overlayStyle} />}
+      {isCommenting && (
+        <div
+          className="border-tertiary bg-tertiary/20 pointer-events-none fixed z-[9999] border-2"
+          ref={overlayRef}
+          style={overlayStyle}
+        />
+      )}
     </>
   );
 };
