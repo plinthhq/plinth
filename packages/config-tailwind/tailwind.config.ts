@@ -3,7 +3,7 @@ import tailwindcssAnimate from "tailwindcss-animate";
 
 // We want each package to be responsible for its own content.
 const config: Omit<Config, "content"> = {
-  content: [ "./global.css"],
+  content: ["./global.css"],
   theme: {
     container: {
       center: true,
@@ -26,6 +26,10 @@ const config: Omit<Config, "content"> = {
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
+        },
+        tertiary: {
+          DEFAULT: "hsl(var(--tertiary))",
+          foreground: "hsl(var(--tertiary-foreground))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
