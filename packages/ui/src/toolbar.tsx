@@ -5,6 +5,7 @@ import { MessageCircle, Inbox } from 'lucide-react';
 import { cn } from '@repo/tailwind-config/utils.ts';
 import { useEffect, useRef, useState } from 'react';
 import { ToggleGroupItem } from './toggle';
+import cursorImage from './assets/add-comment-cursor.svg';
 
 interface ToolbarProps extends React.ComponentPropsWithoutRef<'div'> {}
 
@@ -91,6 +92,36 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
     }
   }, [isCommenting]);
 
+  // When `isCommenting` is true swap regular cursor with the "new comment" cursor and set the
+  // hit point to its center
+  useEffect(() => {
+    let styleElement: HTMLStyleElement | null = null;
+
+    if (isCommenting) {
+      // Create a style element
+      styleElement = document.createElement('style');
+      styleElement.type = 'text/css';
+
+      // Define the CSS rule that sets the cursor for all elements
+      // This means that other elements cannot override this global CSS rule (i.e. a link or button)
+      styleElement.innerHTML = `
+        * {
+          cursor: url(${cursorImage.src}) 16 16, auto !important;
+        }
+      `;
+
+      // Append the style element to the document head
+      document.head.appendChild(styleElement);
+    }
+
+    return () => {
+      // Remove the style element when isCommenting is false or on unmount
+      if (styleElement && document.head.contains(styleElement)) {
+        document.head.removeChild(styleElement);
+      }
+    };
+  }, [isCommenting]);
+
   return (
     <>
       <div
@@ -101,6 +132,7 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
         ref={toolbarRef}
       >
         <ToggleGroup.Root
+          disabled={isCommenting}
           onValueChange={(newValue) => {
             setMenuValue(newValue);
           }}
