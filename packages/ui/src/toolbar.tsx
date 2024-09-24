@@ -106,7 +106,7 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
       // This means that other elements cannot override this global CSS rule (i.e. a link or button)
       styleElement.innerHTML = `
         * {
-          cursor: url(${cursorImage.src}) 16 16, auto !important;
+          cursor: url(${cursorImage.src}), auto !important;
         }
       `;
 
