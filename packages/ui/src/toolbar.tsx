@@ -3,9 +3,10 @@
 import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import { MessageCircle, Inbox } from 'lucide-react';
 import { cn } from '@repo/tailwind-config/utils.ts';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ToggleGroupItem } from './toggle';
 import cursorImage from './assets/add-comment-cursor.svg';
+import { NewCommentPopover } from './new-comment-popover';
 
 interface ToolbarProps extends React.ComponentPropsWithoutRef<'div'> {}
 
@@ -20,6 +21,14 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
 
   // Reference to this toolbar widget to prevent highlighting
   const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // New comment state
+  const [isAddingComment, setIsAddingComment] = useState<boolean>(false);
+  const [newCommentPopoverStyle, setNewCommentPopoverStyle] =
+    useState<React.CSSProperties>({});
+  const newCommentPopoverRef = useRef<HTMLDivElement>(null);
+  const [selectedElementRect, setSelectedElementRect] =
+    useState<DOMRect | null>(null);
 
   useEffect(() => {
     if (isCommenting) {
@@ -64,8 +73,11 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
           element !== overlayRef.current &&
           !toolbarRef.current?.contains(element)
         ) {
-          // Handle the selected element as needed
+          // Set the selected element's rect and show the popover
           console.log('Selected element:', element);
+          const elementRect = element.getBoundingClientRect();
+          setSelectedElementRect(elementRect);
+          setIsAddingComment(true);
         }
         // Close the menu
         setMenuValue('empty');
@@ -122,6 +134,49 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
     };
   }, [isCommenting]);
 
+  // We need to use a useLayoutEffect after the new comment popover has been rendered to the DOM
+  // otherwise `newCommentPopoverRef.current` will be null
+  // This hook will run synchronously after all DOM mutations but *before the browser repaints*
+  // more info: https://react.dev/reference/react/useLayoutEffect
+  useLayoutEffect(() => {
+    // Get the centre point of the clicked element and place the top left point of the
+    // popover at this centre point
+    // If there is no room (renders outside the page width) then place top right point instead
+    if (
+      isAddingComment &&
+      selectedElementRect &&
+      newCommentPopoverRef.current
+    ) {
+      const popover = newCommentPopoverRef.current;
+      const popoverRect = popover.getBoundingClientRect();
+      const popoverWidth = popoverRect.width;
+      const popoverHeight = popoverRect.height;
+
+      const centerX = selectedElementRect.left + selectedElementRect.width / 2;
+      const centerY = selectedElementRect.top + selectedElementRect.height / 2;
+
+      let popoverLeft = centerX;
+      let popoverTop = centerY;
+
+      // Adjust positions if popover goes beyond the window width
+      if (popoverLeft + popoverWidth > window.innerWidth) {
+        // Place top-right corner at the center point
+        popoverLeft = centerX - popoverWidth;
+      }
+
+      // Adjust positions if popover goes beyond the window height
+      if (popoverTop + popoverHeight > window.innerHeight) {
+        popoverTop = centerY - popoverHeight;
+      }
+
+      // Set the style
+      setNewCommentPopoverStyle({
+        top: `${popoverTop}px`,
+        left: `${popoverLeft}px`,
+      });
+    }
+  }, [isAddingComment, selectedElementRect]);
+
   return (
     <>
       <div
@@ -169,11 +224,22 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
           </ToggleGroup.Root>
         </div>
       </div>
+      {/* The bounding box that is overlaid on hovered elements when isCommenting is true */}
       {isCommenting && (
         <div
           className="border-tertiary bg-tertiary/20 pointer-events-none fixed z-[9999] border-2"
           ref={overlayRef}
           style={overlayStyle}
+        />
+      )}
+      {/* The new comment popover shown only when the user clicks on an element when isCommenting is true */}
+      {isAddingComment && (
+        <NewCommentPopover
+          ref={newCommentPopoverRef}
+          style={newCommentPopoverStyle}
+          onClose={() => {
+            setIsAddingComment(false);
+          }}
         />
       )}
     </>
