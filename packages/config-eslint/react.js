@@ -47,6 +47,8 @@ module.exports = {
     ],
     // Empty interfaces are okay and can be valid for certain design patterns
     "@typescript-eslint/no-empty-interface": "off",
+    // Console warnings and console errors are valid
+    "no-console": ["error", { allow: ["warn", "error"] }],
   },
   overrides: [
     {
