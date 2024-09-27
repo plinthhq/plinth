@@ -7,6 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ToggleGroupItem } from './toggle';
 import cursorImage from './assets/add-comment-cursor.svg';
 import { NewCommentPopover } from './new-comment-popover';
+import { InboxPopover } from './inbox-popover';
 
 interface ToolbarProps extends React.ComponentPropsWithoutRef<'div'> {}
 
@@ -224,6 +225,7 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
           </ToggleGroup.Root>
         </div>
       </div>
+      {/* TODO: Use a provider or simple state management for menu state? */}
       {/* The bounding box that is overlaid on hovered elements when isCommenting is true */}
       {isCommenting && (
         <div
@@ -242,6 +244,8 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
           }}
         />
       )}
+      {/* The comment inbox popover that is revealed from the right */}
+      <InboxPopover controlledState={menuValue === 'inbox'} />
     </>
   );
 };
