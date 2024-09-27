@@ -10,7 +10,8 @@
   "exports": {
     "./styles.css": "./dist/index.css",
     "./card": "./src/card.tsx",
-    "./toolbar": "./src/toolbar.tsx"
+    "./toolbar": "./src/toolbar.tsx",
+    "./index": "./src/index.tsx"
   },
   "license": "MIT",
   "scripts": {
@@ -41,6 +42,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-toggle": "^1.1.0",
     "@radix-ui/react-toggle-group": "^1.1.0",
+    "@supabase/supabase-js": "^2.45.4",
     "class-variance-authority": "^0.7.0",
     "lucide-react": "^0.441.0"
   }
