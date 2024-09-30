@@ -15,7 +15,7 @@ interface InboxPopoverProps extends ComponentPropsWithoutRef<'div'> {
 }
 
 const InboxPopover = forwardRef<HTMLDivElement, InboxPopoverProps>(
-  ({ className, controlledState = false, ...props }, ref) => {
+  ({ className, onClose, controlledState = false, ...props }, ref) => {
     const [isOpen, setIsOpen] = useState(controlledState);
     const { supabase, projectId } = useSupabase();
 
@@ -96,7 +96,15 @@ const InboxPopover = forwardRef<HTMLDivElement, InboxPopoverProps>(
           <TabsList className="w-full border-b px-4">
             <TabsTrigger value="inbox">Inbox</TabsTrigger>
             <TabsTrigger value="resolved">Resolved</TabsTrigger>
-            <Button className="ml-auto" size="icon" variant="ghost">
+            <Button
+              className="ml-auto"
+              onClick={() => {
+                setIsOpen(false);
+                onClose?.();
+              }}
+              size="icon"
+              variant="ghost"
+            >
               <X className="h-5 w-5" strokeWidth={1.5} />
             </Button>
           </TabsList>

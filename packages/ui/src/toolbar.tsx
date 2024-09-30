@@ -244,7 +244,12 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
         />
       ) : null}
       {/* The comment inbox popover that is revealed from the right */}
-      <InboxPopover controlledState={menuValue === 'inbox'} />
+      <InboxPopover
+        controlledState={menuValue === 'inbox'}
+        onClose={() => {
+          setMenuValue('empty');
+        }}
+      />
     </>
   );
 };
