@@ -33,7 +33,7 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
 
   useEffect(() => {
     if (isCommenting) {
-      const handleMouseMove = (event: MouseEvent) => {
+      const handleMouseMove = (event: MouseEvent): void => {
         const { clientX, clientY } = event;
         const element = document.elementFromPoint(
           clientX,
@@ -60,7 +60,7 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
       };
 
       // Get the element under the cursor when the user clicks
-      const handleClick = (event: MouseEvent) => {
+      const handleClick = (event: MouseEvent): void => {
         event.preventDefault();
         event.stopPropagation();
         const { clientX, clientY } = event;
@@ -75,7 +75,6 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
           !toolbarRef.current?.contains(element)
         ) {
           // Set the selected element's rect and show the popover
-          console.log('Selected element:', element);
           const elementRect = element.getBoundingClientRect();
           setSelectedElementRect(elementRect);
           setIsAddingComment(true);
@@ -85,7 +84,7 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
       };
 
       // Shortcut to close the menu when "ESC" is pressed
-      const handleKeyDown = (event: KeyboardEvent) => {
+      const handleKeyDown = (event: KeyboardEvent): void => {
         if (event.key === 'Escape') {
           // Close the menu
           setMenuValue('empty');
@@ -227,23 +226,23 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
       </div>
       {/* TODO: Use a provider or simple state management for menu state? */}
       {/* The bounding box that is overlaid on hovered elements when isCommenting is true */}
-      {isCommenting && (
+      {isCommenting ? (
         <div
-          className="border-tertiary bg-tertiary/20 pointer-events-none fixed z-[9999] border-2"
+          className="pointer-events-none fixed z-[9999] border-2 border-tertiary bg-tertiary/20"
           ref={overlayRef}
           style={overlayStyle}
         />
-      )}
+      ) : null}
       {/* The new comment popover shown only when the user clicks on an element when isCommenting is true */}
-      {isAddingComment && (
+      {isAddingComment ? (
         <NewCommentPopover
-          ref={newCommentPopoverRef}
-          style={newCommentPopoverStyle}
           onClose={() => {
             setIsAddingComment(false);
           }}
+          ref={newCommentPopoverRef}
+          style={newCommentPopoverStyle}
         />
-      )}
+      ) : null}
       {/* The comment inbox popover that is revealed from the right */}
       <InboxPopover controlledState={menuValue === 'inbox'} />
     </>
