@@ -1,18 +1,16 @@
 'use client';
 
-import React, {
-  createContext,
-  useContext,
-  ReactNode,
-  useEffect,
-  useState,
-} from 'react';
-import { createClient, Session, SupabaseClient } from '@supabase/supabase-js';
+import type { ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import type { Session, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '../types/database.types';
 
 // Define the context with Supabase client and session
 interface SupabaseContextType {
   supabase: SupabaseClient;
   session: Session | null;
+  projectId: string;
 }
 
 const SupabaseContext = createContext<SupabaseContextType | null>(null);
@@ -20,6 +18,7 @@ const SupabaseContext = createContext<SupabaseContextType | null>(null);
 interface SupabaseProviderProps {
   supabaseUrl: string;
   supabaseAnonKey: string;
+  projectId: string;
   children: ReactNode;
 }
 
@@ -29,7 +28,7 @@ let supabaseSingleton: SupabaseClient | null = null;
 
 const getSupabaseClient = (supabaseUrl: string, supabaseAnonKey: string) => {
   if (!supabaseSingleton) {
-    supabaseSingleton = createClient(supabaseUrl, supabaseAnonKey);
+    supabaseSingleton = createClient<Database>(supabaseUrl, supabaseAnonKey);
   }
   return supabaseSingleton;
 };
@@ -37,6 +36,7 @@ const getSupabaseClient = (supabaseUrl: string, supabaseAnonKey: string) => {
 export const SupabaseProvider = ({
   supabaseUrl,
   supabaseAnonKey,
+  projectId,
   children,
 }: SupabaseProviderProps) => {
   // Store the session and the client here
@@ -73,7 +73,7 @@ export const SupabaseProvider = ({
   }, [supabase]);
 
   return (
-    <SupabaseContext.Provider value={{ supabase, session }}>
+    <SupabaseContext.Provider value={{ supabase, session, projectId }}>
       {children}
     </SupabaseContext.Provider>
   );

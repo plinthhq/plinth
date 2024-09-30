@@ -29,6 +29,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# SQL dump files
+*.dump.sql
+
 # turbo
 .turbo
 

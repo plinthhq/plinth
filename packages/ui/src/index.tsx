@@ -13,11 +13,20 @@ const Content = (): JSX.Element => {
 interface PlinthProps {
   backendUrl: string;
   anonKey: string;
+  projectId: string;
 }
 
-const Plinth = ({ backendUrl, anonKey }: PlinthProps): JSX.Element => {
+const Plinth = ({
+  backendUrl,
+  anonKey,
+  projectId,
+}: PlinthProps): JSX.Element => {
   return (
-    <SupabaseProvider supabaseUrl={backendUrl} supabaseAnonKey={anonKey}>
+    <SupabaseProvider
+      projectId={projectId}
+      supabaseAnonKey={anonKey}
+      supabaseUrl={backendUrl}
+    >
       <Content />
     </SupabaseProvider>
   );
