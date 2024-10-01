@@ -1,26 +1,61 @@
 import { cn } from '@repo/tailwind-config/utils.ts';
-import { CircleCheck } from 'lucide-react';
+import { CircleCheck, EllipsisVertical } from 'lucide-react';
 import { Skeleton } from './skeleton';
 import type { Views } from './types/database.types';
 import { Avatar, AvatarFallback, AvatarImage } from './avatar';
 import { Button } from './button';
 import { timeAgo, toInitials } from './lib';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './dropdown-menu';
+import { useSupabase } from './providers/supabase-provider';
 
 type CommentWithAuthor = Views<'comments_with_author'>;
 
 interface InboxCommentProps extends React.ComponentPropsWithoutRef<'div'> {
   isLoading?: boolean;
-  isResolved?: boolean;
   comment?: CommentWithAuthor;
 }
 
 const InboxComment = ({
   className,
   isLoading = true,
-  isResolved = false,
   comment,
   ...props
 }: InboxCommentProps): JSX.Element => {
+  const { supabase } = useSupabase();
+
+  const markAs = async (resolved: boolean): Promise<void> => {
+    if (!comment) {
+      return;
+    }
+    const { error } = await supabase
+      .from('comments')
+      .update({ resolved })
+      .eq('id', comment.id);
+    if (error) {
+      console.error(error);
+    }
+  };
+
+  const deleteComment = async (): Promise<void> => {
+    if (!comment) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('id', comment.id);
+
+    if (error) {
+      console.error(error);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className={cn('flex flex-col gap-4', className)} {...props}>
@@ -62,9 +97,40 @@ const InboxComment = ({
             {timeAgo(comment.created_at)}
           </p>
         </div>
-        {!isResolved && (
+        {comment.resolved ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                className="text-foreground/50"
+                size="icon"
+                variant="ghost"
+              >
+                <EllipsisVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="z-[99999]">
+              <DropdownMenuItem
+                onClick={() => {
+                  void markAs(false);
+                }}
+              >
+                Mark as unresolved
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  void deleteComment();
+                }}
+              >
+                Permanently delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
           <Button
             className="text-foreground/50 hover:bg-green-50 hover:text-green-500"
+            onClick={() => {
+              void markAs(true);
+            }}
             size="icon"
             variant="ghost"
           >

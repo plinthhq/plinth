@@ -65,7 +65,6 @@ const InboxPopover = forwardRef<HTMLDivElement, InboxPopoverProps>(
               <InboxComment
                 comment={comment}
                 isLoading={isLoading}
-                isResolved={isResolved}
                 key={comment.id}
               />
             );

@@ -15,6 +15,7 @@ export type Database = MergeDeep<
             author_first_name: string;
             author_last_name: string;
             created_at: string;
+            resolved: boolean;
           };
         };
       };
