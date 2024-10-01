@@ -1,10 +1,11 @@
 import { cn } from '@repo/tailwind-config/utils.ts';
 import { CircleCheck, EllipsisVertical } from 'lucide-react';
+import { mutate } from 'swr';
 import { Skeleton } from './skeleton';
 import type { Views } from './types/database.types';
 import { Avatar, AvatarFallback, AvatarImage } from './avatar';
 import { Button } from './button';
-import { timeAgo, toInitials } from './lib';
+import { timeAgo, toInitials } from './lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,19 +33,52 @@ const InboxComment = ({
     if (!comment) {
       return;
     }
+
+    // Optimistically update the comment as resolved/unresolved and don't revalidate (call remote) yet
+    void mutate(
+      ['comments', comment.project_id, resolved],
+      (existingComments: CommentWithAuthor[] | undefined) => {
+        if (!existingComments) {
+          return [];
+        }
+        return existingComments.map((c) =>
+          c.id === comment.id ? { ...c, resolved } : c
+        );
+      },
+      { revalidate: false }
+    );
+
+    // Perform the actual update
     const { error } = await supabase
       .from('comments')
       .update({ resolved })
       .eq('id', comment.id);
+
     if (error) {
       console.error(error);
     }
+
+    // Rollback if the update fails or revalidate to ensure the local and remote states are synced
+    void mutate(['comments', comment.project_id, comment.resolved]);
   };
 
   const deleteComment = async (): Promise<void> => {
     if (!comment) {
       return;
     }
+
+    // Optimistically update and remove the comment
+    void mutate(
+      ['comments', comment.project_id, comment.resolved],
+      (existingComments: CommentWithAuthor[] | undefined) => {
+        if (!existingComments) {
+          return [];
+        }
+
+        return existingComments.filter((c) => c.id !== comment.id);
+      },
+      { revalidate: false }
+    );
 
     const { error } = await supabase
       .from('comments')
@@ -54,6 +88,9 @@ const InboxComment = ({
     if (error) {
       console.error(error);
     }
+
+    // Rollback if the update fails or revalidate to ensure the local and remote states are synced
+    void mutate(['comments', comment.project_id, comment.resolved]);
   };
 
   if (isLoading) {

@@ -2,11 +2,13 @@ import { cn } from '@repo/tailwind-config/utils.ts';
 import type { ComponentPropsWithoutRef } from 'react';
 import { forwardRef, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import useSWR from 'swr';
 import { useSupabase } from './providers/supabase-provider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 import { Button } from './button';
 import { InboxComment } from './inbox-comment';
 import type { Views } from './types/database.types';
+import { getComments } from './lib/api/comments';
 
 type CommentWithAuthor = Views<'comments_with_author'>;
 interface InboxPopoverProps extends ComponentPropsWithoutRef<'div'> {
@@ -19,37 +21,29 @@ const InboxPopover = forwardRef<HTMLDivElement, InboxPopoverProps>(
     const [isOpen, setIsOpen] = useState(controlledState);
     const { supabase, projectId } = useSupabase();
 
-    const [isLoading, setIsLoading] = useState(false);
-    const [comments, setComments] = useState<CommentWithAuthor[] | null>(null);
-
     const [activeTab, setActiveTab] = useState<string>('inbox');
     const isResolved = activeTab === 'resolved';
+
+    // Fetch data
+    const {
+      data: comments,
+      error,
+      isLoading,
+    } = useSWR<CommentWithAuthor[], Error>(
+      // List the dependencies as the cache key
+      ['comments', projectId, isResolved],
+      // Pass the fetcher with arguments
+      () => getComments(supabase, projectId, isResolved)
+    );
+
+    if (error) {
+      //TODO: Show toast on error
+      console.error(error);
+    }
 
     useEffect(() => {
       setIsOpen(controlledState);
     }, [controlledState]);
-
-    // Fetch data when menu is opened
-    useEffect(() => {
-      if (isOpen) {
-        const fetchData = async (): Promise<void> => {
-          setIsLoading(true);
-          const { data, error } = await supabase
-            .from('comments_with_author')
-            .select('*')
-            .eq('project_id', projectId)
-            .eq('resolved', isResolved);
-          if (error) {
-            console.error(error);
-          } else {
-            setComments(data);
-          }
-          setIsLoading(false);
-        };
-
-        void fetchData();
-      }
-    }, [isOpen, supabase, activeTab, projectId, isResolved]);
 
     const renderComments = (): JSX.Element => (
       <div className="flex flex-col gap-8 p-4">
