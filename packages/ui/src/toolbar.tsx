@@ -28,8 +28,10 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
   const [newCommentPopoverStyle, setNewCommentPopoverStyle] =
     useState<React.CSSProperties>({});
   const newCommentPopoverRef = useRef<HTMLDivElement>(null);
-  const [selectedElementRect, setSelectedElementRect] =
-    useState<DOMRect | null>(null);
+
+  const [selectedElement, setSelectedElement] = useState<
+    HTMLElement | undefined
+  >();
 
   useEffect(() => {
     if (isCommenting) {
@@ -74,9 +76,8 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
           element !== overlayRef.current &&
           !toolbarRef.current?.contains(element)
         ) {
-          // Set the selected element's rect and show the popover
-          const elementRect = element.getBoundingClientRect();
-          setSelectedElementRect(elementRect);
+          // Set selected element and show the popover
+          setSelectedElement(element);
           setIsAddingComment(true);
         }
         // Close the menu
@@ -142,15 +143,13 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
     // Get the centre point of the clicked element and place the top left point of the
     // popover at this centre point
     // If there is no room (renders outside the page width) then place top right point instead
-    if (
-      isAddingComment &&
-      selectedElementRect &&
-      newCommentPopoverRef.current
-    ) {
+    if (isAddingComment && selectedElement && newCommentPopoverRef.current) {
       const popover = newCommentPopoverRef.current;
       const popoverRect = popover.getBoundingClientRect();
       const popoverWidth = popoverRect.width;
       const popoverHeight = popoverRect.height;
+
+      const selectedElementRect = selectedElement.getBoundingClientRect();
 
       const centerX = selectedElementRect.left + selectedElementRect.width / 2;
       const centerY = selectedElementRect.top + selectedElementRect.height / 2;
@@ -175,7 +174,7 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
         left: `${popoverLeft}px`,
       });
     }
-  }, [isAddingComment, selectedElementRect]);
+  }, [isAddingComment, selectedElement]);
 
   return (
     <>
@@ -240,6 +239,7 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
             setIsAddingComment(false);
           }}
           ref={newCommentPopoverRef}
+          selectedElement={selectedElement}
           style={newCommentPopoverStyle}
         />
       ) : null}

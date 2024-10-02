@@ -1,19 +1,29 @@
 'use client';
 
 import { cn } from '@repo/tailwind-config/utils.ts';
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Label } from './label';
 import { Textarea } from './textarea';
 import { Button } from './button';
+import { useSupabase } from './providers/supabase-provider';
+import { TableInserts } from './types/database.types';
+import getXPath from './lib/utils/get-xpath';
+import { mutate } from 'swr';
+
+type NewComment = TableInserts<'comments'>;
 
 interface NewCommentPopoverProps extends React.ComponentPropsWithoutRef<'div'> {
   onClose: () => void;
+  selectedElement?: HTMLElement;
 }
 
 const NewCommentPopover = React.forwardRef<
   HTMLDivElement,
   NewCommentPopoverProps
->(({ className, onClose, ...props }, ref) => {
+>(({ className, onClose, selectedElement, ...props }, ref) => {
+  const { supabase, projectId, session } = useSupabase();
+  const [commentText, setCommentText] = useState<string>('');
+
   // Create a local ref
   const localRef = useRef<HTMLDivElement>(null);
 
@@ -52,20 +62,66 @@ const NewCommentPopover = React.forwardRef<
     };
   }, [onClose]);
 
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
+    setCommentText(e.target.value);
+  };
+
+  const handleSubmit = async (event: React.FormEvent): Promise<void> => {
+    event.preventDefault();
+    await createComment();
+    setCommentText('');
+    onClose();
+  };
+
+  const createComment = async (): Promise<void> => {
+    if (!session) {
+      console.error(
+        'Session object is null. Please ensure the user is signed in.'
+      );
+      return;
+    }
+    if (!selectedElement) {
+      console.error('No selected element was passed to NewCommentPopover.');
+      return;
+    }
+    const { right: x, top: y } = selectedElement.getBoundingClientRect();
+    const newComment: NewComment = {
+      body: commentText,
+      project_id: projectId,
+      author_id: session.user.id,
+      page_url: `${window.location.pathname}${window.location.search}`,
+      element_xpath: getXPath(selectedElement),
+      coordinates: `${x},${y}`,
+    };
+    const { error } = await supabase.from('comments').insert(newComment);
+    // Invalidate data (on success) or fallback (on error)
+    if (error) {
+      console.error(error);
+    }
+    void mutate(['comments']);
+  };
+
   return (
     <div
       className={cn('fixed z-[9999] w-96', className)}
       ref={localRef}
       {...props}
     >
-      <form className="relative overflow-hidden rounded-lg border bg-background shadow-lg focus-within:ring-1 focus-within:ring-ring">
+      <form
+        className="relative overflow-hidden rounded-lg border bg-background shadow-lg focus-within:ring-1 focus-within:ring-ring"
+        onSubmit={(e: React.FormEvent) => {
+          void handleSubmit(e);
+        }}
+      >
         <Label className="sr-only" htmlFor="message">
           Message
         </Label>
         <Textarea
           className="min-h-12 resize-none border-0 p-3 shadow-none focus-visible:ring-0"
           id="message"
+          onChange={handleChange}
           placeholder="Type your message here..."
+          value={commentText}
         />
         <div className="flex items-center p-3 pt-0">
           {/* TODO: Tooltips buttons for attaching files or screenshots */}
