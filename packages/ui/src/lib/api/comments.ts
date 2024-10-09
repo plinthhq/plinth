@@ -1,7 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Views } from '../../types/database.types';
-
-export type CommentWithAuthor = Views<'comments_with_author'>;
+import type { CommentWithAuthor } from '../../types/database.types';
 
 //QUESTION: Can we just use the supabase singleton here instead of passing it via an argument?
 export async function getComments(

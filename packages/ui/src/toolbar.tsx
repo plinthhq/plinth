@@ -8,13 +8,11 @@ import { ToggleGroupItem } from './toggle';
 import cursorImage from './assets/add-comment-cursor.svg';
 import { NewCommentPopover } from './new-comment-popover';
 import { InboxPopover } from './inbox-popover';
-import { Views } from './types/database.types';
 import useSWR from 'swr';
 import { useSupabase } from './providers/supabase-provider';
 import { getComments } from './lib/api/comments';
 import { CommentPin } from './comment-pin';
-
-type CommentWithAuthor = Views<'comments_with_author'>;
+import type { CommentWithAuthor } from './types/database.types';
 
 interface ToolbarProps extends React.ComponentPropsWithoutRef<'div'> {}
 

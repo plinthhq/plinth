@@ -6,11 +6,9 @@ import { Label } from './label';
 import { Textarea } from './textarea';
 import { Button } from './button';
 import { useSupabase } from './providers/supabase-provider';
-import { TableInserts } from './types/database.types';
 import getXPath from './lib/utils/get-xpath';
 import { mutate } from 'swr';
-
-type NewComment = TableInserts<'comments'>;
+import type { NewComment } from './types/database.types';
 
 interface NewCommentPopoverProps extends React.ComponentPropsWithoutRef<'div'> {
   onClose: () => void;

@@ -2,7 +2,6 @@ import { cn } from '@repo/tailwind-config/utils.ts';
 import { CircleCheck, EllipsisVertical } from 'lucide-react';
 import { mutate } from 'swr';
 import { Skeleton } from './skeleton';
-import type { Views } from './types/database.types';
 import { Avatar, AvatarFallback, AvatarImage } from './avatar';
 import { Button } from './button';
 import { timeAgo, toInitials } from './lib/utils';
@@ -13,8 +12,7 @@ import {
   DropdownMenuTrigger,
 } from './dropdown-menu';
 import { useSupabase } from './providers/supabase-provider';
-
-type CommentWithAuthor = Views<'comments_with_author'>;
+import type { CommentWithAuthor } from './types/database.types';
 
 interface InboxCommentProps extends React.ComponentPropsWithoutRef<'div'> {
   isLoading?: boolean;

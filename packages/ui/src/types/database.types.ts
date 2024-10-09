@@ -4,6 +4,7 @@ import type { Database as DatabaseGenerated } from './database-generated.types';
 
 export type { Json } from './database-generated.types';
 
+// Override generated types
 export type Database = MergeDeep<
   DatabaseGenerated,
   {
@@ -25,6 +26,8 @@ export type Database = MergeDeep<
   }
 >;
 
+// Generic helpers and shorthands
+
 export type Table<T extends keyof Database['public']['Tables']> =
   Database['public']['Tables'][T]['Row'];
 export type TableInserts<T extends keyof Database['public']['Tables']> =
@@ -40,3 +43,7 @@ export type DbResult<T> = T extends PromiseLike<infer U> ? U : never;
 export type DbResultOk<T> =
   T extends PromiseLike<{ data: infer U }> ? Exclude<U, null> : never;
 export type DbResultErr = PostgrestError;
+
+// Plinth specific types related to the tables, views .. etc
+export type CommentWithAuthor = Views<'comments_with_author'>;
+export type NewComment = TableInserts<'comments'>;

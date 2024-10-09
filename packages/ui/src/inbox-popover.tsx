@@ -7,10 +7,9 @@ import { useSupabase } from './providers/supabase-provider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 import { Button } from './button';
 import { InboxComment } from './inbox-comment';
-import type { Views } from './types/database.types';
+import type { CommentWithAuthor } from './types/database.types';
 import { getComments } from './lib/api/comments';
 
-type CommentWithAuthor = Views<'comments_with_author'>;
 interface InboxPopoverProps extends ComponentPropsWithoutRef<'div'> {
   onClose?: () => void;
   controlledState?: boolean;
