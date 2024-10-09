@@ -8,6 +8,13 @@ import { ToggleGroupItem } from './toggle';
 import cursorImage from './assets/add-comment-cursor.svg';
 import { NewCommentPopover } from './new-comment-popover';
 import { InboxPopover } from './inbox-popover';
+import { Views } from './types/database.types';
+import useSWR from 'swr';
+import { useSupabase } from './providers/supabase-provider';
+import { getComments } from './lib/api/comments';
+import { CommentPin } from './comment-pin';
+
+type CommentWithAuthor = Views<'comments_with_author'>;
 
 interface ToolbarProps extends React.ComponentPropsWithoutRef<'div'> {}
 
@@ -28,10 +35,28 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
   const [newCommentPopoverStyle, setNewCommentPopoverStyle] =
     useState<React.CSSProperties>({});
   const newCommentPopoverRef = useRef<HTMLDivElement>(null);
-
   const [selectedElement, setSelectedElement] = useState<
     HTMLElement | undefined
   >();
+
+  const { supabase, projectId } = useSupabase();
+
+  // Fetch unresolved comments for this project
+  const {
+    data: comments,
+    error,
+    isLoading,
+  } = useSWR<CommentWithAuthor[], Error>(
+    // List the dependencies as the cache key
+    ['comments', projectId],
+    // Pass the fetcher with arguments
+    () => getComments(supabase, projectId, false)
+  );
+
+  if (error) {
+    //TODO: Show toast on error
+    console.error(error);
+  }
 
   useEffect(() => {
     if (isCommenting) {
@@ -250,6 +275,10 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
           setMenuValue('empty');
         }}
       />
+      {/* Plot all unresolved comments on the screen */}
+      {comments?.map((comment) => {
+        return <CommentPin comment={comment} key={comment.id} />;
+      })}
     </>
   );
 };

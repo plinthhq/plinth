@@ -16,6 +16,8 @@ export type Database = MergeDeep<
             author_last_name: string;
             created_at: string;
             resolved: boolean;
+            coordinates: string;
+            element_xpath: string;
           };
         };
       };
