@@ -2,7 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { type Arguments, mutate } from 'swr';
 import type { CommentWithAuthor } from '../../types/database.types';
 
-//QUESTION: Can we just use the supabase singleton here instead of passing it via an argument?
 export async function getComments(
   supabase: SupabaseClient,
   projectId: string,
@@ -60,6 +59,8 @@ export async function getCommentsInThread(
 // Marks a comment as unresolved/resolved then invalidates the cache and fetches the updated data
 // cacheKey: this is the SWR key that you used when you fetched the data originally
 // e.g. ['comments', comment.project_id, resolved]
+//TODO: Potentially remove the cacheKey argument and the function will work out which caches to 
+// invalidate?
 export async function markAs(
   supabase: SupabaseClient,
   comment: CommentWithAuthor,
@@ -75,7 +76,9 @@ export async function markAs(
         return [];
       }
       return existingComments.map((c) =>
-        c.id === comment.id ? { ...c, resolved } : c
+        c.id === comment.id || c.parent_id === comment.id
+          ? { ...c, resolved }
+          : c
       );
     },
     { revalidate: false }
@@ -85,7 +88,7 @@ export async function markAs(
   const { error } = await supabase
     .from('comments')
     .update({ resolved })
-    .eq('id', comment.id);
+    .or(`id.eq.${comment.id},parent_id.eq.${comment.id}`);
 
   if (error) {
     console.error(error);
