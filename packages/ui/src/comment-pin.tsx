@@ -4,7 +4,7 @@ import { cn } from '@repo/tailwind-config/utils.ts';
 import type { ComponentPropsWithoutRef } from 'react';
 import { useEffect, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
-import { CircleCheck, Send } from 'lucide-react';
+import { CircleCheck, EllipsisVertical, Send } from 'lucide-react';
 import useSWR, { mutate } from 'swr';
 import type { CommentWithAuthor, NewComment } from './types/database.types';
 import { Avatar, AvatarFallback, AvatarImage } from './avatar';
@@ -14,6 +14,12 @@ import { getCommentsInThread, markAs } from './lib/api/comments';
 import { useSupabase } from './providers/supabase-provider';
 import { Textarea } from './textarea';
 import { Label } from './label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './dropdown-menu';
 
 interface CommentPinProps extends ComponentPropsWithoutRef<'button'> {
   comment: CommentWithAuthor;
@@ -124,14 +130,47 @@ const CommentPin = ({
       element_xpath: comment.element_xpath,
       coordinates: comment.coordinates,
     };
-    const { error: creationError } = await supabase
+    const { error: errorOnCreate } = await supabase
       .from('comments')
       .insert(newComment);
     // Invalidate data (on success) or fallback (on error)
-    if (creationError) {
-      console.error(creationError);
+    if (errorOnCreate) {
+      console.error(errorOnCreate);
     }
     void mutate(['thread', comment.id]);
+  };
+
+  const deleteComment = async (): Promise<void> => {
+    // Optimistically update and remove the comment
+    void mutate(
+      ['comments', comment.project_id],
+      (existingComments: CommentWithAuthor[] | undefined) => {
+        if (!existingComments) {
+          return [];
+        }
+
+        return existingComments.filter((c) => c.id !== comment.id);
+      },
+      { revalidate: false }
+    );
+
+    // Delete the comment and any children
+    const { error: errorOnDelete } = await supabase
+      .from('comments')
+      .delete()
+      .or(`id.eq.${comment.id},parent_id.eq.${comment.id}`);
+
+    if (errorOnDelete) {
+      console.error(errorOnDelete);
+    }
+
+    // Rollback if the update fails or revalidate to ensure the local and remote states are synced
+    // Revalidate comments for this page
+    void mutate(['comments', comment.project_id]);
+    // Revalidate comments in the inbox
+    void mutate(['comments', comment.project_id, true]);
+    //Revalidate unresolved comments in the inbox
+    void mutate(['comments', comment.project_id, false]);
   };
 
   return (
@@ -187,19 +226,50 @@ const CommentPin = ({
                 {timeAgo(comment.created_at)}
               </p>
             </div>
-            <Button
-              className="text-foreground/50 hover:bg-green-50 hover:text-green-500"
-              onClick={() => {
-                void markAs(supabase, comment, true, [
-                  'comments',
-                  comment.project_id,
-                ]);
-              }}
-              size="icon"
-              variant="ghost"
-            >
-              <CircleCheck className="h-5 w-5" strokeWidth={1.5} />
-            </Button>
+            <div className="flex items-center gap-0">
+              <Button
+                className="text-foreground/50 hover:bg-green-50 hover:text-green-500"
+                onClick={() => {
+                  void markAs(supabase, comment, true, [
+                    'comments',
+                    comment.project_id,
+                  ]);
+                }}
+                size="icon"
+                variant="ghost"
+              >
+                <CircleCheck className="h-5 w-5" strokeWidth={1.5} />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    className="text-foreground/50"
+                    size="icon"
+                    variant="ghost"
+                  >
+                    <EllipsisVertical className="h-5 w-5" strokeWidth={1.5} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="z-[99999]">
+                  {/* TODO: Add edit logic */}
+                  {/* <DropdownMenuItem
+                    onClick={() => {
+                      void editComment();
+                    }}
+                  >
+                    Edit comment
+                  </DropdownMenuItem> */}
+                  {/* TODO: Add delete logic */}
+                  <DropdownMenuItem
+                    onClick={() => {
+                      void deleteComment();
+                    }}
+                  >
+                    Permanently delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
           <p className="text-[15px]">{comment.body}</p>
         </div>
