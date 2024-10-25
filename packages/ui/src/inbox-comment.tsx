@@ -13,6 +13,7 @@ import {
 } from './dropdown-menu';
 import { useSupabase } from './providers/supabase-provider';
 import type { CommentWithAuthor } from './types/database.types';
+import { markAs } from './lib/api/comments';
 
 interface InboxCommentProps extends React.ComponentPropsWithoutRef<'div'> {
   isLoading?: boolean;
@@ -26,39 +27,6 @@ const InboxComment = ({
   ...props
 }: InboxCommentProps): JSX.Element => {
   const { supabase } = useSupabase();
-
-  const markAs = async (resolved: boolean): Promise<void> => {
-    if (!comment) {
-      return;
-    }
-
-    // Optimistically update the comment as resolved/unresolved and don't revalidate (call remote) yet
-    void mutate(
-      ['comments', comment.project_id, resolved],
-      (existingComments: CommentWithAuthor[] | undefined) => {
-        if (!existingComments) {
-          return [];
-        }
-        return existingComments.map((c) =>
-          c.id === comment.id ? { ...c, resolved } : c
-        );
-      },
-      { revalidate: false }
-    );
-
-    // Perform the actual update
-    const { error } = await supabase
-      .from('comments')
-      .update({ resolved })
-      .eq('id', comment.id);
-
-    if (error) {
-      console.error(error);
-    }
-
-    // Rollback if the update fails or revalidate to ensure the local and remote states are synced
-    void mutate(['comments', comment.project_id, comment.resolved]);
-  };
 
   const deleteComment = async (): Promise<void> => {
     if (!comment) {
@@ -146,7 +114,11 @@ const InboxComment = ({
             <DropdownMenuContent className="z-[99999]">
               <DropdownMenuItem
                 onClick={() => {
-                  void markAs(false);
+                  void markAs(supabase, comment, false, [
+                    'comments',
+                    comment.project_id,
+                    comment.resolved, //the key is for the previous state (whatever tab we are currently in, resolved vs. inbox)
+                  ]);
                 }}
               >
                 Mark as unresolved
@@ -164,7 +136,12 @@ const InboxComment = ({
           <Button
             className="text-foreground/50 hover:bg-green-50 hover:text-green-500"
             onClick={() => {
-              void markAs(true);
+              // void markAs(true);
+              void markAs(supabase, comment, true, [
+                'comments',
+                comment.project_id,
+                comment.resolved,
+              ]);
             }}
             size="icon"
             variant="ghost"

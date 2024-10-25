@@ -96,7 +96,7 @@ const NewCommentPopover = React.forwardRef<
     if (error) {
       console.error(error);
     }
-    void mutate(['comments']);
+    void mutate(['comments', projectId]);
   };
 
   return (

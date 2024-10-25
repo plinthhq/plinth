@@ -13,6 +13,7 @@ export type Database = MergeDeep<
         comments_with_author: {
           Row: {
             id: string;
+            project_id: string;
             author_first_name: string;
             author_last_name: string;
             created_at: string;
@@ -47,3 +48,4 @@ export type DbResultErr = PostgrestError;
 // Plinth specific types related to the tables, views .. etc
 export type CommentWithAuthor = Views<'comments_with_author'>;
 export type NewComment = TableInserts<'comments'>;
+export type ThreadedComment = Views<'comments_threaded'>;

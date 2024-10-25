@@ -10,9 +10,10 @@ import { NewCommentPopover } from './new-comment-popover';
 import { InboxPopover } from './inbox-popover';
 import useSWR from 'swr';
 import { useSupabase } from './providers/supabase-provider';
-import { getComments } from './lib/api/comments';
+import { getComments, getCommentsForPage } from './lib/api/comments';
 import { CommentPin } from './comment-pin';
 import type { CommentWithAuthor } from './types/database.types';
+import * as Popover from '@radix-ui/react-popover';
 
 interface ToolbarProps extends React.ComponentPropsWithoutRef<'div'> {}
 
@@ -48,7 +49,7 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
     // List the dependencies as the cache key
     ['comments', projectId],
     // Pass the fetcher with arguments
-    () => getComments(supabase, projectId, false)
+    () => getCommentsForPage(supabase, projectId, '/')
   );
 
   if (error) {

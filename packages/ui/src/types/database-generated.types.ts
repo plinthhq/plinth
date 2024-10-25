@@ -287,6 +287,27 @@ export type Database = {
       }
     }
     Views: {
+      comments_threaded: {
+        Row: {
+          author_avatar_url: string | null
+          author_first_name: string | null
+          author_id: string | null
+          author_last_name: string | null
+          author_username: string | null
+          body: string | null
+          coordinates: unknown | null
+          created_at: string | null
+          element_xpath: string | null
+          id: string | null
+          page_url: string | null
+          parent_id: string | null
+          project_id: string | null
+          resolved: boolean | null
+          thread_level: number | null
+          thread_root_id: string | null
+        }
+        Relationships: []
+      }
       comments_with_author: {
         Row: {
           author_avatar_url: string | null
