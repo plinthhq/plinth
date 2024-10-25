@@ -2,13 +2,10 @@ import { cn } from '@repo/tailwind-config/utils.ts';
 import type { ComponentPropsWithoutRef } from 'react';
 import { forwardRef, useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import useSWR from 'swr';
-import { useSupabase } from './providers/supabase-provider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 import { Button } from './button';
 import { InboxComment } from './inbox-comment';
-import type { CommentWithAuthor } from './types/database.types';
-import { getComments } from './lib/api/comments';
+import { useComments } from './lib/hooks/use-comments';
 
 interface InboxPopoverProps extends ComponentPropsWithoutRef<'div'> {
   onClose?: () => void;
@@ -18,22 +15,12 @@ interface InboxPopoverProps extends ComponentPropsWithoutRef<'div'> {
 const InboxPopover = forwardRef<HTMLDivElement, InboxPopoverProps>(
   ({ className, onClose, controlledState = false, ...props }, ref) => {
     const [isOpen, setIsOpen] = useState(controlledState);
-    const { supabase, projectId } = useSupabase();
 
     const [activeTab, setActiveTab] = useState<string>('inbox');
     const isResolved = activeTab === 'resolved';
 
-    // Fetch data
-    const {
-      data: comments,
-      error,
-      isLoading,
-    } = useSWR<CommentWithAuthor[], Error>(
-      // List the dependencies as the cache key
-      ['comments', projectId, isResolved],
-      // Pass the fetcher with arguments
-      () => getComments(supabase, projectId, isResolved)
-    );
+    //Fetch data (resolved vs. unresolved)
+    const { data: comments, error, isLoading } = useComments(isResolved);
 
     if (error) {
       //TODO: Show toast on error
