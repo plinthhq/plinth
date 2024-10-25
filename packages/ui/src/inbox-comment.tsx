@@ -13,7 +13,7 @@ import {
 } from './dropdown-menu';
 import { useSupabase } from './providers/supabase-provider';
 import type { CommentWithAuthor } from './types/database.types';
-import { markAs } from './lib/api/comments';
+import { useComment } from './lib/hooks/use-comment';
 
 interface InboxCommentProps extends React.ComponentPropsWithoutRef<'div'> {
   isLoading?: boolean;
@@ -27,6 +27,7 @@ const InboxComment = ({
   ...props
 }: InboxCommentProps): JSX.Element => {
   const { supabase } = useSupabase();
+  const { markAs } = useComment();
 
   const deleteComment = async (): Promise<void> => {
     if (!comment) {
@@ -115,11 +116,7 @@ const InboxComment = ({
             <DropdownMenuContent className="z-[99999]">
               <DropdownMenuItem
                 onClick={() => {
-                  void markAs(supabase, comment, false, [
-                    'comments',
-                    comment.project_id,
-                    comment.resolved, //the key is for the previous state (whatever tab we are currently in, resolved vs. inbox)
-                  ]);
+                  void markAs(comment, false);
                 }}
               >
                 Mark as unresolved
@@ -137,12 +134,7 @@ const InboxComment = ({
           <Button
             className="text-foreground/50 hover:bg-green-50 hover:text-green-500"
             onClick={() => {
-              // void markAs(true);
-              void markAs(supabase, comment, true, [
-                'comments',
-                comment.project_id,
-                comment.resolved,
-              ]);
+              void markAs(comment, true);
             }}
             size="icon"
             variant="ghost"

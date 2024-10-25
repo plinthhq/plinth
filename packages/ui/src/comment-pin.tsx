@@ -10,7 +10,6 @@ import type { CommentWithAuthor, NewComment } from './types/database.types';
 import { Avatar, AvatarFallback, AvatarImage } from './avatar';
 import { timeAgo, toInitials } from './lib/utils';
 import { Button } from './button';
-import { markAs } from './lib/api/comments';
 import { useSupabase } from './providers/supabase-provider';
 import { Textarea } from './textarea';
 import { Label } from './label';
@@ -21,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from './dropdown-menu';
 import { useThread } from './lib/hooks/use-thread';
+import { useComment } from './lib/hooks/use-comment';
 
 interface CommentPinProps extends ComponentPropsWithoutRef<'button'> {
   comment: CommentWithAuthor;
@@ -35,6 +35,7 @@ const CommentPin = ({
 
   // Fetch any replies to the comment (the thread)
   const { data: replies, error } = useThread(comment.id);
+  const { markAs } = useComment();
 
   if (error) {
     //TODO: Show toast on error
@@ -226,10 +227,7 @@ const CommentPin = ({
               <Button
                 className="text-foreground/50 hover:bg-green-50 hover:text-green-500"
                 onClick={() => {
-                  void markAs(supabase, comment, true, [
-                    'comments',
-                    comment.project_id,
-                  ]);
+                  void markAs(comment, true);
                 }}
                 size="icon"
                 variant="ghost"
