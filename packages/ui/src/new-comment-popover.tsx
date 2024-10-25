@@ -96,7 +96,10 @@ const NewCommentPopover = React.forwardRef<
     if (error) {
       console.error(error);
     }
+    // Invalidate the comments for this project and page
     void mutate(['comments', projectId]);
+    // Invalidate the comments in the inbox, a new unresolved comment has been created 
+    void mutate(['comments', projectId, false])
   };
 
   return (
