@@ -2,22 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { type Arguments, mutate } from 'swr';
 import type { CommentWithAuthor } from '../../types/database.types';
 
-export async function getCommentsInThread(
-  supabase: SupabaseClient,
-  parentCommentId: string
-): Promise<CommentWithAuthor[]> {
-  const { data, error } = await supabase
-    .from('comments_with_author')
-    .select('*')
-    .eq('parent_id', parentCommentId)
-    .returns<CommentWithAuthor[]>();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-  return data;
-}
-
 // Marks a comment as unresolved/resolved then invalidates the cache and fetches the updated data
 // cacheKey: this is the SWR key that you used when you fetched the data originally
 // e.g. ['comments', comment.project_id, resolved]

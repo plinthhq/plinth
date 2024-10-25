@@ -5,12 +5,12 @@ import type { ComponentPropsWithoutRef } from 'react';
 import { useEffect, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { CircleCheck, EllipsisVertical, Send } from 'lucide-react';
-import useSWR, { mutate } from 'swr';
+import { mutate } from 'swr';
 import type { CommentWithAuthor, NewComment } from './types/database.types';
 import { Avatar, AvatarFallback, AvatarImage } from './avatar';
 import { timeAgo, toInitials } from './lib/utils';
 import { Button } from './button';
-import { getCommentsInThread, markAs } from './lib/api/comments';
+import { markAs } from './lib/api/comments';
 import { useSupabase } from './providers/supabase-provider';
 import { Textarea } from './textarea';
 import { Label } from './label';
@@ -20,6 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './dropdown-menu';
+import { useThread } from './lib/hooks/use-thread';
 
 interface CommentPinProps extends ComponentPropsWithoutRef<'button'> {
   comment: CommentWithAuthor;
@@ -33,12 +34,7 @@ const CommentPin = ({
   const { supabase, session } = useSupabase();
 
   // Fetch any replies to the comment (the thread)
-  const { data: replies, error } = useSWR<CommentWithAuthor[], Error>(
-    // List the dependencies as the cache key
-    ['thread', comment.id],
-    // Pass the fetcher with arguments
-    () => getCommentsInThread(supabase, comment.id)
-  );
+  const { data: replies, error } = useThread(comment.id);
 
   if (error) {
     //TODO: Show toast on error
