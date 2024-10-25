@@ -46,10 +46,11 @@ const InboxComment = ({
       { revalidate: false }
     );
 
+    // Delete the comment and any children
     const { error } = await supabase
       .from('comments')
       .delete()
-      .eq('id', comment.id);
+      .or(`id.eq.${comment.id},parent_id.eq.${comment.id}`);
 
     if (error) {
       console.error(error);
