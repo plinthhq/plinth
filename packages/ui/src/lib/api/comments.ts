@@ -20,26 +20,6 @@ export async function getComments(
   return data;
 }
 
-export async function getCommentsForPage(
-  supabase: SupabaseClient,
-  projectId: string,
-  pageUrl: string
-): Promise<CommentWithAuthor[]> {
-  const { data, error } = await supabase
-    .from('comments_with_author')
-    .select('*')
-    .is('parent_id', null)
-    .eq('project_id', projectId)
-    .eq('page_url', pageUrl)
-    .eq('resolved', false)
-    .returns<CommentWithAuthor[]>();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-  return data;
-}
-
 export async function getCommentsInThread(
   supabase: SupabaseClient,
   parentCommentId: string
@@ -59,7 +39,7 @@ export async function getCommentsInThread(
 // Marks a comment as unresolved/resolved then invalidates the cache and fetches the updated data
 // cacheKey: this is the SWR key that you used when you fetched the data originally
 // e.g. ['comments', comment.project_id, resolved]
-//TODO: Potentially remove the cacheKey argument and the function will work out which caches to 
+//TODO: Potentially remove the cacheKey argument and the function will work out which caches to
 // invalidate?
 export async function markAs(
   supabase: SupabaseClient,

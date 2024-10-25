@@ -8,12 +8,8 @@ import { ToggleGroupItem } from './toggle';
 import cursorImage from './assets/add-comment-cursor.svg';
 import { NewCommentPopover } from './new-comment-popover';
 import { InboxPopover } from './inbox-popover';
-import useSWR from 'swr';
-import { useSupabase } from './providers/supabase-provider';
-import { getComments, getCommentsForPage } from './lib/api/comments';
 import { CommentPin } from './comment-pin';
-import type { CommentWithAuthor } from './types/database.types';
-import * as Popover from '@radix-ui/react-popover';
+import { usePageComments } from './lib/hooks/use-page-comments';
 
 interface ToolbarProps extends React.ComponentPropsWithoutRef<'div'> {}
 
@@ -38,19 +34,8 @@ const Toolbar = ({ className }: ToolbarProps): JSX.Element => {
     HTMLElement | undefined
   >();
 
-  const { supabase, projectId } = useSupabase();
-
-  // Fetch unresolved comments for this project
-  const {
-    data: comments,
-    error,
-    isLoading,
-  } = useSWR<CommentWithAuthor[], Error>(
-    // List the dependencies as the cache key
-    ['comments', projectId],
-    // Pass the fetcher with arguments
-    () => getCommentsForPage(supabase, projectId, '/')
-  );
+  // Fetch comments for this project and page
+  const { data: comments, error } = usePageComments('/');
 
   if (error) {
     //TODO: Show toast on error
