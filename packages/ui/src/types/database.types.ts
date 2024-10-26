@@ -49,3 +49,4 @@ export type DbResultErr = PostgrestError;
 export type CommentWithAuthor = Views<'comments_with_author'>;
 export type NewComment = TableInserts<'comments'>;
 export type ThreadedComment = Views<'comments_threaded'>;
+export type Comment = Table<"comments">;

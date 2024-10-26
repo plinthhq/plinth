@@ -5,7 +5,6 @@ import type { ComponentPropsWithoutRef } from 'react';
 import { useEffect, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { CircleCheck, EllipsisVertical, Send } from 'lucide-react';
-import { mutate } from 'swr';
 import type { CommentWithAuthor, NewComment } from './types/database.types';
 import { Avatar, AvatarFallback, AvatarImage } from './avatar';
 import { timeAgo, toInitials } from './lib/utils';
@@ -31,12 +30,11 @@ const CommentPin = ({
   comment,
   ...props
 }: CommentPinProps): JSX.Element | null => {
-  const { supabase, session } = useSupabase();
-  const { deleteComment } = useComment();
+  const { session } = useSupabase();
 
   // Fetch any replies to the comment (the thread)
   const { data: replies, error } = useThread(comment.id);
-  const { markAs } = useComment();
+  const { markAs, createComment, deleteComment } = useComment();
 
   if (error) {
     //TODO: Show toast on error
@@ -106,11 +104,6 @@ const CommentPin = ({
 
   const handleSubmit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
-    await createComment();
-    setReplyText('');
-  };
-
-  const createComment = async (): Promise<void> => {
     if (!session) {
       console.error(
         'Session object is null. Please ensure the user is signed in.'
@@ -118,7 +111,6 @@ const CommentPin = ({
       return;
     }
 
-    // const { right: x, top: y } = selectedElement.getBoundingClientRect();
     const newComment: NewComment = {
       body: replyText,
       parent_id: comment.id,
@@ -128,14 +120,9 @@ const CommentPin = ({
       element_xpath: comment.element_xpath,
       coordinates: comment.coordinates,
     };
-    const { error: errorOnCreate } = await supabase
-      .from('comments')
-      .insert(newComment);
-    // Invalidate data (on success) or fallback (on error)
-    if (errorOnCreate) {
-      console.error(errorOnCreate);
-    }
-    void mutate(['thread', comment.id]);
+
+    await createComment(newComment);
+    setReplyText('');
   };
 
   return (

@@ -1,16 +1,64 @@
 import { mutate } from 'swr';
-import { CommentWithAuthor } from '../../types/database.types';
-import { useSupabase } from '../../providers/supabase-provider';
 import { useCallback } from 'react';
+import type {
+  Comment,
+  CommentWithAuthor,
+  NewComment,
+} from '../../types/database.types';
+import { useSupabase } from '../../providers/supabase-provider';
 
 export function useComment(): {
   markAs: (comment: CommentWithAuthor, resolved: boolean) => Promise<void>;
   deleteComment: (comment: CommentWithAuthor) => Promise<void>;
+  updateComment: (
+    previous: Comment,
+    updated: Comment
+  ) => Promise<Comment | null>;
+  createComment: (comment: NewComment) => Promise<Comment | null>;
 } {
-  const { supabase } = useSupabase();
+  const { supabase, projectId } = useSupabase();
 
-  //TODO: Update comment function
-  // pass the original comment and then new data that you want to update?
+  const createComment = async (
+    comment: NewComment
+  ): Promise<Comment | null> => {
+    const { data, error } = await supabase
+      .from('comments')
+      .insert(comment)
+      .select()
+      .returns<Comment[]>();
+    // Invalidate data (on success) or fallback (on error)
+    if (error) {
+      console.error(error);
+      throw new Error(error.message);
+    }
+
+    // Invalidate the comments for this project and page
+    void mutate(['comments', projectId]);
+    // Invalidate the comments in the inbox, a new unresolved comment has been created
+    void mutate(['comments', projectId, false]);
+    // Invalidate the thread (when the new comment is a reply)
+    void mutate(['thread', data[0].parent_id]);
+
+    return data[0];
+  };
+
+  const updateComment = async (
+    previous: Comment,
+    updated: Partial<Comment>
+  ): Promise<Comment | null> => {
+    const { data, error } = await supabase
+      .from('comments')
+      .update(updated)
+      .eq('id', previous.id)
+      .select()
+      .returns<Comment[]>();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data[0];
+  };
 
   const deleteComment = async (comment: CommentWithAuthor): Promise<void> => {
     const mutator = (existingComments: CommentWithAuthor[] | undefined) => {
@@ -97,5 +145,7 @@ export function useComment(): {
   return {
     markAs,
     deleteComment,
+    updateComment,
+    createComment,
   };
 }

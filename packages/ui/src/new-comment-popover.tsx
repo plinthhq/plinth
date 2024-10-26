@@ -7,8 +7,8 @@ import { Textarea } from './textarea';
 import { Button } from './button';
 import { useSupabase } from './providers/supabase-provider';
 import getXPath from './lib/utils/get-xpath';
-import { mutate } from 'swr';
 import type { NewComment } from './types/database.types';
+import { useComment } from './lib/hooks/use-comment';
 
 interface NewCommentPopoverProps extends React.ComponentPropsWithoutRef<'div'> {
   onClose: () => void;
@@ -19,8 +19,9 @@ const NewCommentPopover = React.forwardRef<
   HTMLDivElement,
   NewCommentPopoverProps
 >(({ className, onClose, selectedElement, ...props }, ref) => {
-  const { supabase, projectId, session } = useSupabase();
+  const { projectId, session } = useSupabase();
   const [commentText, setCommentText] = useState<string>('');
+  const { createComment } = useComment();
 
   // Create a local ref
   const localRef = useRef<HTMLDivElement>(null);
@@ -66,12 +67,6 @@ const NewCommentPopover = React.forwardRef<
 
   const handleSubmit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
-    await createComment();
-    setCommentText('');
-    onClose();
-  };
-
-  const createComment = async (): Promise<void> => {
     if (!session) {
       console.error(
         'Session object is null. Please ensure the user is signed in.'
@@ -91,15 +86,9 @@ const NewCommentPopover = React.forwardRef<
       element_xpath: getXPath(selectedElement),
       coordinates: `${x},${y}`,
     };
-    const { error } = await supabase.from('comments').insert(newComment);
-    // Invalidate data (on success) or fallback (on error)
-    if (error) {
-      console.error(error);
-    }
-    // Invalidate the comments for this project and page
-    void mutate(['comments', projectId]);
-    // Invalidate the comments in the inbox, a new unresolved comment has been created 
-    void mutate(['comments', projectId, false])
+    await createComment(newComment);
+    setCommentText('');
+    onClose();
   };
 
   return (
