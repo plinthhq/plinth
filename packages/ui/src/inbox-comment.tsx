@@ -1,6 +1,5 @@
 import { cn } from '@repo/tailwind-config/utils.ts';
 import { CircleCheck, EllipsisVertical } from 'lucide-react';
-import { mutate } from 'swr';
 import { Skeleton } from './skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from './avatar';
 import { Button } from './button';
@@ -11,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './dropdown-menu';
-import { useSupabase } from './providers/supabase-provider';
 import type { CommentWithAuthor } from './types/database.types';
 import { useComment } from './lib/hooks/use-comment';
 
@@ -26,40 +24,7 @@ const InboxComment = ({
   comment,
   ...props
 }: InboxCommentProps): JSX.Element => {
-  const { supabase } = useSupabase();
-  const { markAs } = useComment();
-
-  const deleteComment = async (): Promise<void> => {
-    if (!comment) {
-      return;
-    }
-
-    // Optimistically update and remove the comment
-    void mutate(
-      ['comments', comment.project_id, comment.resolved],
-      (existingComments: CommentWithAuthor[] | undefined) => {
-        if (!existingComments) {
-          return [];
-        }
-
-        return existingComments.filter((c) => c.id !== comment.id);
-      },
-      { revalidate: false }
-    );
-
-    // Delete the comment and any children
-    const { error } = await supabase
-      .from('comments')
-      .delete()
-      .or(`id.eq.${comment.id},parent_id.eq.${comment.id}`);
-
-    if (error) {
-      console.error(error);
-    }
-
-    // Rollback if the update fails or revalidate to ensure the local and remote states are synced
-    void mutate(['comments', comment.project_id, comment.resolved]);
-  };
+  const { markAs, deleteComment } = useComment();
 
   if (isLoading) {
     return (
@@ -123,7 +88,7 @@ const InboxComment = ({
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
-                  void deleteComment();
+                  void deleteComment(comment);
                 }}
               >
                 Permanently delete

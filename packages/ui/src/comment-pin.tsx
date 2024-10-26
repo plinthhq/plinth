@@ -32,6 +32,7 @@ const CommentPin = ({
   ...props
 }: CommentPinProps): JSX.Element | null => {
   const { supabase, session } = useSupabase();
+  const { deleteComment } = useComment();
 
   // Fetch any replies to the comment (the thread)
   const { data: replies, error } = useThread(comment.id);
@@ -137,39 +138,6 @@ const CommentPin = ({
     void mutate(['thread', comment.id]);
   };
 
-  const deleteComment = async (): Promise<void> => {
-    // Optimistically update and remove the comment
-    void mutate(
-      ['comments', comment.project_id],
-      (existingComments: CommentWithAuthor[] | undefined) => {
-        if (!existingComments) {
-          return [];
-        }
-
-        return existingComments.filter((c) => c.id !== comment.id);
-      },
-      { revalidate: false }
-    );
-
-    // Delete the comment and any children
-    const { error: errorOnDelete } = await supabase
-      .from('comments')
-      .delete()
-      .or(`id.eq.${comment.id},parent_id.eq.${comment.id}`);
-
-    if (errorOnDelete) {
-      console.error(errorOnDelete);
-    }
-
-    // Rollback if the update fails or revalidate to ensure the local and remote states are synced
-    // Revalidate comments for this page
-    void mutate(['comments', comment.project_id]);
-    // Revalidate comments in the inbox
-    void mutate(['comments', comment.project_id, true]);
-    //Revalidate unresolved comments in the inbox
-    void mutate(['comments', comment.project_id, false]);
-  };
-
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
@@ -253,10 +221,9 @@ const CommentPin = ({
                   >
                     Edit comment
                   </DropdownMenuItem> */}
-                  {/* TODO: Add delete logic */}
                   <DropdownMenuItem
                     onClick={() => {
-                      void deleteComment();
+                      void deleteComment(comment);
                     }}
                   >
                     Permanently delete
