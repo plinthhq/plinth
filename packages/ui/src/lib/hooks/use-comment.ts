@@ -12,7 +12,7 @@ export function useComment(): {
   deleteComment: (comment: CommentWithAuthor) => Promise<void>;
   updateComment: (
     previous: Comment,
-    updated: Comment
+    updated: Partial<Comment>
   ) => Promise<Comment | null>;
   createComment: (comment: NewComment) => Promise<Comment | null>;
 } {
@@ -79,6 +79,8 @@ export function useComment(): {
     void mutate(['comments', comment.project_id, false], mutator, {
       revalidate: false,
     });
+    // Update the thread too
+    void mutate(['thread', comment.parent_id], mutator, { revalidate: false });
 
     // Delete the comment and any children
     const { error } = await supabase
@@ -94,6 +96,8 @@ export function useComment(): {
     void mutate(['comments', comment.project_id]);
     void mutate(['comments', comment.project_id, true]);
     void mutate(['comments', comment.project_id, false]);
+    // Update the thread too
+    void mutate(['thread', comment.parent_id]);
   };
 
   // Marks a comment as unresolved/resolved then invalidates the cache and fetches the updated data

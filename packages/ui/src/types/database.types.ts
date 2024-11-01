@@ -20,6 +20,7 @@ export type Database = MergeDeep<
             resolved: boolean;
             coordinates: string;
             element_xpath: string;
+            body: string;
           };
         };
       };

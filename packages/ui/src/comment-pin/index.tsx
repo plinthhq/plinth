@@ -4,22 +4,23 @@ import { cn } from '@repo/tailwind-config/utils.ts';
 import type { ComponentPropsWithoutRef } from 'react';
 import { useEffect, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
-import { CircleCheck, EllipsisVertical, Send } from 'lucide-react';
-import type { CommentWithAuthor, NewComment } from './types/database.types';
-import { Avatar, AvatarFallback, AvatarImage } from './avatar';
-import { timeAgo, toInitials } from './lib/utils';
-import { Button } from './button';
-import { useSupabase } from './providers/supabase-provider';
-import { Textarea } from './textarea';
-import { Label } from './label';
+import { CircleCheck, EllipsisVertical } from 'lucide-react';
+import type { Comment, CommentWithAuthor } from '../types/database.types';
+import { Avatar, AvatarFallback, AvatarImage } from '../avatar';
+import { timeAgo, toInitials } from '../lib/utils';
+import { Button } from '../button';
+import { useSupabase } from '../providers/supabase-provider';
+import { Textarea } from '../textarea';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from './dropdown-menu';
-import { useThread } from './lib/hooks/use-thread';
-import { useComment } from './lib/hooks/use-comment';
+} from '../dropdown-menu';
+import { useThread } from '../lib/hooks/use-thread';
+import { useComment } from '../lib/hooks/use-comment';
+import { Reply } from './reply';
+import { AddReply } from './add-reply';
 
 interface CommentPinProps extends ComponentPropsWithoutRef<'button'> {
   comment: CommentWithAuthor;
@@ -31,19 +32,25 @@ const CommentPin = ({
   ...props
 }: CommentPinProps): JSX.Element | null => {
   const { session } = useSupabase();
+  if (!session) {
+    throw Error('Session object is null. Please ensure the user is signed in.');
+  }
 
   // Fetch any replies to the comment (the thread)
   const { data: replies, error } = useThread(comment.id);
-  const { markAs, createComment, deleteComment } = useComment();
+  const { markAs, deleteComment, updateComment } = useComment();
+
+  // Comment editing state to toggle the form
+  const [isEditing, setIsEditing] = useState(false);
 
   if (error) {
     //TODO: Show toast on error
     console.error(error);
   }
 
-  const hasReplies = (replies?.length ?? 0) > 0;
+  const [commentText, setCommentText] = useState(comment.body);
 
-  const [replyText, setReplyText] = useState<string>('');
+  const hasReplies = (replies?.length ?? 0) > 0;
 
   // The XPath of the element in question
   const xpath = comment.element_xpath;
@@ -98,31 +105,20 @@ const CommentPin = ({
     return null;
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
-    setReplyText(e.target.value);
+  const editComment = (): void => {
+    setIsEditing((prev) => !prev);
   };
 
   const handleSubmit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
-    if (!session) {
-      console.error(
-        'Session object is null. Please ensure the user is signed in.'
-      );
-      return;
+    try {
+      await updateComment(comment as Comment, { body: commentText });
+    } catch (updateError) {
+      //TODO: Toast
+      console.error(updateError);
+    } finally {
+      setIsEditing(false);
     }
-
-    const newComment: NewComment = {
-      body: replyText,
-      parent_id: comment.id,
-      project_id: comment.project_id,
-      author_id: session.user.id,
-      page_url: `${window.location.pathname}${window.location.search}`,
-      element_xpath: comment.element_xpath,
-      coordinates: comment.coordinates,
-    };
-
-    await createComment(newComment);
-    setReplyText('');
   };
 
   return (
@@ -157,7 +153,10 @@ const CommentPin = ({
         sideOffset={8}
       >
         {/* Render the comment */}
-        <div className="flex flex-col gap-4 p-4">
+        <form
+          className="flex flex-col gap-4 p-4"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
           <div className="flex justify-between">
             <div className="flex items-center gap-2">
               <Avatar className="h-6 w-6">
@@ -201,13 +200,13 @@ const CommentPin = ({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="z-[99999]">
                   {/* TODO: Add edit logic */}
-                  {/* <DropdownMenuItem
+                  <DropdownMenuItem
                     onClick={() => {
-                      void editComment();
+                      editComment();
                     }}
                   >
                     Edit comment
-                  </DropdownMenuItem> */}
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
                       void deleteComment(comment);
@@ -219,39 +218,37 @@ const CommentPin = ({
               </DropdownMenu>
             </div>
           </div>
-          <p className="text-[15px]">{comment.body}</p>
-        </div>
+          <Textarea
+            className="resize-none border-0 p-0 shadow-none focus-visible:ring-0 disabled:cursor-default disabled:opacity-100"
+            disabled={!isEditing}
+            id="comment"
+            onChange={(event) => {
+              setCommentText(event.target.value);
+            }}
+            placeholder="Type your message here..."
+            value={commentText}
+          />
+          {isEditing ? (
+            <div className="flex items-center p-3 pt-0">
+              {/* TODO: Tooltips buttons for attaching files or screenshots, see Shadcn examples */}
+              <Button
+                className={cn('ml-auto gap-1.5')}
+                disabled={!isEditing}
+                size="sm"
+                type="submit"
+              >
+                Send Message
+              </Button>
+            </div>
+          ) : null}
+        </form>
 
         {/* Render replies to the comment */}
         {hasReplies ? (
           <>
             <div className="h-[1px] w-full bg-border" />
-
             <div className="flex flex-col gap-4 p-4">
-              {replies?.map((reply) => (
-                <div className="flex flex-col gap-4" key={reply.id}>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      {reply.author_avatar_url ? (
-                        <AvatarImage src={reply.author_avatar_url} />
-                      ) : null}
-                      <AvatarFallback>
-                        {toInitials(
-                          reply.author_first_name,
-                          reply.author_last_name
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
-                    <p className="text-sm">
-                      {reply.author_first_name} {reply.author_last_name}
-                    </p>
-                    <p className="text-sm text-foreground/70">
-                      {timeAgo(reply.created_at)}
-                    </p>
-                  </div>
-                  <p className="text-[15px]">{reply.body}</p>
-                </div>
-              ))}
+              {replies?.map((reply) => <Reply key={reply.id} reply={reply} />)}
             </div>
           </>
         ) : null}
@@ -259,52 +256,7 @@ const CommentPin = ({
         <div className="h-[1px] w-full bg-border" />
 
         {/* Render the reply text area */}
-        <form
-          className="overflow-hidden p-4 focus-within:ring-1 focus-within:ring-ring"
-          onSubmit={(e: React.FormEvent) => {
-            void handleSubmit(e);
-          }}
-        >
-          <Label className="sr-only" htmlFor="reply">
-            Reply
-          </Label>
-          <Textarea
-            className="min-h-0 resize-none border-none p-0 shadow-none focus-visible:ring-0"
-            id="reply"
-            onChange={handleChange}
-            placeholder="Reply here..."
-            value={replyText}
-          />
-          <div className="flex items-center">
-            {/* TODO: Tooltips buttons for attaching files or screenshots */}
-            {/* <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Paperclip className="size-4" />
-                <span className="sr-only">Attach file</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top">Attach File</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Mic className="size-4" />
-                <span className="sr-only">Use Microphone</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top">Use Microphone</TooltipContent>
-          </Tooltip> */}
-            <Button
-              className="ml-auto"
-              size="icon"
-              type="submit"
-              variant="ghost"
-            >
-              <Send className="h-5 w-5" strokeWidth={2} />
-            </Button>
-          </div>
-        </form>
+        <AddReply authorId={session.user.id} comment={comment} />
       </Popover.Content>
     </Popover.Root>
   );
